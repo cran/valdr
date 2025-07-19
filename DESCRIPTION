@@ -1,0 +1,23 @@
+Package: valdr
+Title: Access and Analyse 'VALD' Data via Our External 'APIs'
+Version: 1.0.0
+Authors@R: c(
+    person("Kieran", "Harrison", email = "k.harrison@vald.com", role = c("aut", "cre")), 
+    person(given = "VALD Support", email = "support@vald.com", role = "ctb"),
+    person("VALD", role = "cph", comment = "Copyright holder"))
+Description: Provides helper functions and wrappers to simplify authentication, 
+    data retrieval, and result processing from the 'VALD' 'APIs'. 
+    Designed to streamline integration for analysts and researchers working 
+    with 'VALD's external 'APIs'. For further documentation, please see <https://support.vald.com/hc/en-au/articles/23415335574553-How-to-integrate-with-VALD-APIs> for documentation.    
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.3.2
+Imports: httr, base64enc, keyring, jsonlite
+NeedsCompilation: no
+Packaged: 2025-07-16 01:29:02 UTC; KieranHarrison
+Author: Kieran Harrison [aut, cre],
+  VALD Support [ctb],
+  VALD [cph] (Copyright holder)
+Maintainer: Kieran Harrison <k.harrison@vald.com>
+Repository: CRAN
+Date/Publication: 2025-07-19 08:40:02 UTC
