@@ -4,7 +4,7 @@
 #'
 #' @param config Configuration object. If NULL, uses internal config set by \code{set_credentials()}.
 #' @param verbose Whether to print a message when refreshing the token.
-#' @return A character vector of length 1 (a single string) representing the bearer token used to authenticate requests. Returned invisibly.
+#' @return (Invisibly) a character vector of length 1 containing the bearer token used for authenticating API requests.
 #' @export
 get_access_token <- function(config = NULL, verbose = TRUE) {
   if (is.null(config)) config <- get_config(quiet = TRUE)
@@ -20,7 +20,7 @@ get_access_token <- function(config = NULL, verbose = TRUE) {
 
   if (!is.null(cached_token) && is_token_valid(cached_token)) {
     if (verbose) message("Reusing cached access token from keyring.")
-    return(cached_token)
+    invisible(cached_token)
   }
 
   # Fetch new token via OAuth2

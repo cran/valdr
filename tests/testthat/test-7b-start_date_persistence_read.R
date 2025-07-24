@@ -1,8 +1,7 @@
-# Test that a start date written to a vald config file exists in a new session
+# Read start date from a VALD config file created in a previous session
+test_that("Read previously written dummy start date in config", {
+  config_path <- file.path(Sys.getenv("HOME"), ".vald_config.json")
+  data <- read_json(config_path)
 
-test_that("STEP 1: Set Dummy start_date", {
-  start_date <- "2025-06-25T00:00:00Z"
-  
-  result <- set_start_date(start_date)
-  expect_true(!is.null(result))
+  expect_true(data$start_date == dummy_start_date)
 })

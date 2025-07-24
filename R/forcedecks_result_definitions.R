@@ -21,8 +21,7 @@ get_forcedecks_result_definitions <- function() {
     }
   )
 
-
-  # Centralised error + empty response handling → get body text back
+  # Centralised error + empty response handling, get body text back
   body_txt <- .handle_api_response(response)
 
   # Parse JSON safely

@@ -6,33 +6,82 @@
   file.path(Sys.getenv("HOME"), ".vald_config.json")
 }
 
+#' Internal helper function to retry reading a key from the system keyring.
+#' This handles potential intermittent delays after writing to the keyring.
+#'
+#' @param service Character. Keyring service name (e.g., "valdr_credentials").
+#' @param username Character. Keyring username (e.g., "client_id").
+#' @param retries Integer. Number of retry attempts before giving up (default 5).
+#' @param delay Numeric. Delay in seconds between retry attempts (default 0.5).
+#'
+#' @return Character scalar. The retrieved credential value.
+#' Will throw an error if unable to retrieve a valid, non-blank value after all retries.
+.retry_key_get <- function(service, username, retries = 5, delay = 0.5) {
+  for (i in seq_len(retries)) {
+    value <- tryCatch(
+      {
+        val <- keyring::key_get(service = service, username = username)
+        if (nzchar(trimws(val))) {
+          if (i > 1) {
+            message(sprintf("Retrieved '%s' from keyring on attempt %d.", username, i))
+          }
+          return(val)
+        } else {
+          message(sprintf("Retry %d/%d: '%s' value is blank. Retrying in %.1f seconds...", i, retries, username, delay))
+          NULL
+        }
+      },
+      error = function(e) {
+        # Suppress error messages during retry
+        NULL
+      }
+    )
+    if (!is.null(value)) {
+      return(value)
+    }
+    Sys.sleep(delay)
+  }
+
+  stop(sprintf(
+    "Unable to retrieve a valid (non-blank) '%s' from keyring after %d attempts. Please call load_credentials() manually.",
+    username, retries
+  ), call. = FALSE)
+}
+
 #' Set and Save VALD API Credentials
 #'
-#' Stores VALD API credentials securely using the system keyring and
-#' saves non-sensitive configuration to a config file in the user's home directory for reuse across sessions.
+#' Securely stores VALD API credentials in the system keyring and
+#' saves non-sensitive configuration to a JSON config file in the user's home directory
+#' for reuse across sessions.
 #'
-#' Sensitive values are never written to disk and are retrieved securely when needed.
+#' Sensitive values (client ID and secret) are never written to disk and
+#' are retrieved securely from the keyring when needed.
 #'
 #' @param client_id Your VALD API Client ID (stored securely in keyring)
 #' @param client_secret Your VALD API Client Secret (stored securely in keyring)
 #' @param tenant_id Your VALD Tenant ID
 #' @param region The VALD data region code (e.g., "aue", "use", "euw")
 #'
-#' @return A logical scalar (TRUE or FALSE), returned invisibly, indicating whether the credentials and configuration were saved successfully. Called primarily for side effects.
+#' @return Invisibly returns TRUE if credentials and configuration were saved successfully.
 #' @export
 set_credentials <- function(client_id, client_secret, tenant_id, region) {
   service_name <- "valdr_credentials"
 
-  # Save secrets to key registry using keyring
+  # Store sensitive credentials securely in the keyring
   keyring::key_set_with_value(service = service_name, username = "client_id", password = client_id)
   keyring::key_set_with_value(service = service_name, username = "client_secret", password = client_secret)
 
-  # Save non-sensitive config to disk
+  # Verify credentials were saved and are retrievable
+  .retry_key_get(service_name, "client_id", retries = 5, delay = 0.5)
+  .retry_key_get(service_name, "client_secret", retries = 5, delay = 0.5)
+
+  # Construct endpoint URLs based on region
   endpoints <- list(
     profile    = paste0("https://prd-", region, "-api-externalprofile.valdperformance.com"),
     forcedecks = paste0("https://prd-", region, "-api-extforcedecks.valdperformance.com")
   )
 
+  # Create config list excluding sensitive info
   config <- list(
     tenant_id = tenant_id,
     region    = region,
@@ -40,44 +89,62 @@ set_credentials <- function(client_id, client_secret, tenant_id, region) {
     endpoints = endpoints
   )
 
+  # Persist non-sensitive config to disk as JSON
   jsonlite::write_json(config, .vald_config_path(), auto_unbox = TRUE)
 
-  # Load full config into memory
+  # Load credentials into package environment to refresh state
   load_credentials()
 
   message("VALD API configuration saved: sensitive values stored in keyring, non-sensitive data saved to disk.")
   invisible(TRUE)
 }
 
-#' Load Stored VALD API Credentials and Configuration
+#' Load Stored VALD API Credentials and Configuration (with retry logic)
 #'
-#' Loads the saved VALD API configuration from the config file in the user's home directory
+#' Loads the saved VALD API configuration from the user's config file
 #' and retrieves sensitive credentials securely from the system keyring.
 #'
-#' This function is automatically called on package load if a saved configuration file exists.
-#'
-#' @return A logical scalar (TRUE or FALSE), returned invisibly, indicating whether the saved credentials and configuration were loaded successfully. Called primarily for side effects.
+#' @return Invisibly returns TRUE if credentials and configuration were loaded successfully, FALSE otherwise.
+#' @param verbose Logical; if TRUE, prints messages on load status (default FALSE).
 #' @export
-load_credentials <- function() {
+load_credentials <- function(verbose = TRUE) {
   service_name <- "valdr_credentials"
   path <- .vald_config_path()
 
   if (!file.exists(path)) {
-    stop("No saved config file found. Please run `set_credentials()` first.")
+    if (verbose) message("VALD config file not found. Please run set_credentials().")
+    return(FALSE)
   }
 
-  # Load non-sensitive config from disk
-  config <- jsonlite::read_json(path, simplifyVector = TRUE)
+  config <- tryCatch(
+    jsonlite::read_json(path, simplifyVector = TRUE),
+    error = function(e) {
+      if (verbose) message("Failed to read config file: ", e$message)
+      NULL
+    }
+  )
+  if (is.null(config)) {
+    return(FALSE)
+  }
 
-  # Retrieve sensitive secrets from keyring
   config$client_id <- tryCatch(
-    keyring::key_get(service = service_name, username = "client_id"),
-    error = function(e) stop("Missing client_id in keyring. Please rerun `set_credentials()`.", call. = FALSE)
+    .retry_key_get(service_name, "client_id"),
+    error = function(e) {
+      if (verbose) message("Unable to retrieve client_id from keyring. Run set_credentials() again.")
+      return(NULL)
+    }
   )
   config$client_secret <- tryCatch(
-    keyring::key_get(service = service_name, username = "client_secret"),
-    error = function(e) stop("Missing client_secret in keyring. Please rerun `set_credentials()`.", call. = FALSE)
+    .retry_key_get(service_name, "client_secret"),
+    error = function(e) {
+      if (verbose) message("Unable to retrieve client_secret from keyring. Run set_credentials() again.")
+      return(NULL)
+    }
   )
+
+  if (is.null(config$client_id) || is.null(config$client_secret)) {
+    return(FALSE)
+  }
 
   .vald_api_env$config <- config
   invisible(TRUE)
@@ -88,10 +155,12 @@ load_credentials <- function() {
 #' Returns the configuration list previously set by \code{set_credentials()}.
 #' If credentials have not been set, this function will raise an error.
 #'
-#' @param safe If TRUE (default), sensitive values are redacted in printed output (only when not quiet).
-#' @param quiet If TRUE, no printed output is shown (default is FALSE).
+#' @param safe Logical; if TRUE (default), sensitive values are redacted in printed output (only when not quiet).
+#' @param quiet Logical; if TRUE, suppresses printed output (default FALSE).
 #'
-#' @return A named list containing the stored VALD configuration values for the current user. Sensitive values are redacted. Returned invisibly.
+#' @return A named list containing the stored VALD configuration values for the current user.
+#' Sensitive values are redacted when printed with safe = TRUE.
+#' Returned invisibly.
 #' @export
 get_config <- function(safe = TRUE, quiet = FALSE) {
   if (is.null(.vald_api_env$config)) {
@@ -100,11 +169,30 @@ get_config <- function(safe = TRUE, quiet = FALSE) {
 
   config <- .vald_api_env$config
 
+  # Retrieve sensitive credentials securely from keyring with retry and error handling
+  config$client_id <- tryCatch(
+    .retry_key_get("valdr_credentials", "client_id"),
+    error = function(e) {
+      stop("Unable to retrieve client_id from keyring: ", e$message)
+    }
+  )
+  config$client_secret <- tryCatch(
+    .retry_key_get("valdr_credentials", "client_secret"),
+    error = function(e) {
+      stop("Unable to retrieve client_secret from keyring: ", e$message)
+    }
+  )
+
+  # Print config with sensitive data redacted
   if (!quiet && safe) {
     display_config <- config
     display_config$client_id <- "<hidden>"
     display_config$client_secret <- "<hidden>"
-    display_config$tenant_id <- substr(config$tenant_id, 1, 8)
+    display_config$tenant_id <- if (!is.null(config$tenant_id)) {
+      substr(config$tenant_id, 1, 8)
+    } else {
+      "<missing>"
+    }
     print(display_config)
   }
 
@@ -119,7 +207,7 @@ get_config <- function(safe = TRUE, quiet = FALSE) {
 #' @return A logical scalar (TRUE), returned invisibly, indicating that the start date was saved and persisted successfully.
 #' @export
 set_start_date <- function(start_date) {
-  # Strip fractional seconds (e.g., .324Z → Z)
+  # Strip fractional seconds (e.g., .324Z - Z)
   start_date <- sub("\\.\\d+Z$", "Z", start_date)
 
   if (!grepl("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", start_date)) {
@@ -142,6 +230,7 @@ set_start_date <- function(start_date) {
   .vald_api_env$config <- config
   invisible(TRUE)
 }
+
 
 #' Retrieve the start date from config
 #'

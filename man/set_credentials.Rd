@@ -16,12 +16,14 @@ set_credentials(client_id, client_secret, tenant_id, region)
 \item{region}{The VALD data region code (e.g., "aue", "use", "euw")}
 }
 \value{
-A logical scalar (TRUE or FALSE), returned invisibly, indicating whether the credentials and configuration were saved successfully. Called primarily for side effects.
+Invisibly returns TRUE if credentials and configuration were saved successfully.
 }
 \description{
-Stores VALD API credentials securely using the system keyring and
-saves non-sensitive configuration to a config file in the user's home directory for reuse across sessions.
+Securely stores VALD API credentials in the system keyring and
+saves non-sensitive configuration to a JSON config file in the user's home directory
+for reuse across sessions.
 }
 \details{
-Sensitive values are never written to disk and are retrieved securely when needed.
+Sensitive values (client ID and secret) are never written to disk and
+are retrieved securely from the keyring when needed.
 }

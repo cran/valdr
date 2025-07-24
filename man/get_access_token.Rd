@@ -12,7 +12,7 @@ get_access_token(config = NULL, verbose = TRUE)
 \item{verbose}{Whether to print a message when refreshing the token.}
 }
 \value{
-A character vector of length 1 (a single string) representing the bearer token used to authenticate requests. Returned invisibly.
+(Invisibly) a character vector of length 1 containing the bearer token used for authenticating API requests.
 }
 \description{
 Retrieves a cached access token from disk if valid, otherwise fetches a new one.

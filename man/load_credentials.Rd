@@ -2,17 +2,17 @@
 % Please edit documentation in R/config.R
 \name{load_credentials}
 \alias{load_credentials}
-\title{Load Stored VALD API Credentials and Configuration}
+\title{Load Stored VALD API Credentials and Configuration (with retry logic)}
 \usage{
-load_credentials()
+load_credentials(verbose = TRUE)
+}
+\arguments{
+\item{verbose}{Logical; if TRUE, prints messages on load status (default FALSE).}
 }
 \value{
-A logical scalar (TRUE or FALSE), returned invisibly, indicating whether the saved credentials and configuration were loaded successfully. Called primarily for side effects.
+Invisibly returns TRUE if credentials and configuration were loaded successfully, FALSE otherwise.
 }
 \description{
-Loads the saved VALD API configuration from the config file in the user's home directory
+Loads the saved VALD API configuration from the user's config file
 and retrieves sensitive credentials securely from the system keyring.
-}
-\details{
-This function is automatically called on package load if a saved configuration file exists.
 }

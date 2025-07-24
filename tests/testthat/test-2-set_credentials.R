@@ -1,5 +1,5 @@
 # Test scenario of setting credentials
-test_that("API credentials can be set", {
+test_that("STEP 1: API credentials can be set", {
   # Uses credentials in local .Renviron file
   # Does not check if credentials are correct
   clear_all_credentials()
@@ -14,3 +14,11 @@ test_that("API credentials can be set", {
     expect_true(!is.null(result))
 })
 
+test_that("STEP 2: Token can be retrieved from keyring", {
+  clear_all_credentials()
+  reset_credentials()
+  
+  result <- length(key_list(service="valdr_credentials"))
+  
+  expect_equal(result, 2)
+})
