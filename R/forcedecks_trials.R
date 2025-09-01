@@ -6,7 +6,8 @@
 #'
 #' @return A data frame containing flattened trial-level results for the supplied tests.
 #' If no trial results are found, returns an empty data frame.
-#' @export
+#' Internal function (not designed to be used directly by end users)
+#' @keywords internal
 get_forcedecks_trials <- function(tests_df) {
   config <- get_config(quiet = TRUE)
   access_token <- authenticate()
@@ -58,32 +59,31 @@ get_forcedecks_trials <- function(tests_df) {
         definition <- result$definition
 
         row <- data.frame(
-          testId = test_id,
-          trialId = trial$id,
-          athleteId = trial$athleteId,
-          hubAthleteId = trial$hubAthleteId,
-          recordedUTC = trial$recordedUTC,
-          recordedOffset = trial$recordedOffset,
-          recordedTimezone = trial$recordedTimezone,
-          startTime = trial$startTime,
-          endTime = trial$endTime,
-          trialLimb = trial$limb,
-          trialLastModifiedUTC = trial$lastModifiedUTC,
-          resultId = result$resultId,
-          value = format(result$value, scientific = FALSE),
-          time = result$time,
-          no_repeats = result[["repeat"]],
-          resultLimb = result$limb,
-          definition_id = definition$id,
-          definition_result = definition$result,
-          definition_description = definition$description,
-          definition_name = definition$name,
-          definition_unit = definition$unit,
-          definition_repeatable = definition$repeatable,
-          definition_asymmetry = definition$asymmetry,
-          stringsAsFactors = FALSE
+          testId               = .safe_value(test_id),
+          trialId              = .safe_value(trial$id),
+          athleteId            = .safe_value(trial$athleteId),
+          hubAthleteId         = .safe_value(trial$hubAthleteId),
+          recordedUTC          = .safe_value(trial$recordedUTC),
+          recordedOffset       = .safe_value(trial$recordedOffset),
+          recordedTimezone     = .safe_value(trial$recordedTimezone),
+          startTime            = .safe_value(trial$startTime),
+          endTime              = .safe_value(trial$endTime),
+          trialLimb            = .safe_value(trial$limb),
+          trialLastModifiedUTC = .safe_value(trial$lastModifiedUTC),
+          resultId             = .safe_value(result$resultId),
+          value                = ifelse(is.null(result$value), "", format(result$value, scientific = FALSE)),
+          time                 = .safe_value(result$time),
+          no_repeats           = .safe_value(result[["repeat"]]),
+          resultLimb           = .safe_value(result$limb),
+          definition_id        = .safe_value(definition$id),
+          definition_result    = .safe_value(definition$result),
+          definition_description = .safe_value(definition$description),
+          definition_name      = .safe_value(definition$name),
+          definition_unit      = .safe_value(definition$unit),
+          definition_repeatable = .safe_value(definition$repeatable),
+          definition_asymmetry = .safe_value(definition$asymmetry),
+          stringsAsFactors     = FALSE
         )
-
         all_trial_results[[length(all_trial_results) + 1]] <- row
       }
     }

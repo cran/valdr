@@ -12,7 +12,9 @@ get_forcedecks_trials(tests_df)
 \value{
 A data frame containing flattened trial-level results for the supplied tests.
 If no trial results are found, returns an empty data frame.
+Internal function (not designed to be used directly by end users)
 }
 \description{
 Retrieves and flattens trial-level result data for each test provided.
 }
+\keyword{internal}

@@ -8,7 +8,9 @@ get_forcedecks_result_definitions()
 }
 \value{
 A data frame where each row corresponds to a ForceDecks result definition retrieved from the API. Returned invisibly.
+Internal function (not designed to be used directly by end users)
 }
 \description{
 Retrieves all available result definitions from the ForceDecks API.
 }
+\keyword{internal}

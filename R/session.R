@@ -120,3 +120,150 @@ get_profiles_only <- function() {
 get_forcedecks_result_definitions_only <- function() {
   get_forcedecks_result_definitions()
 }
+
+#' Get ForceFrame test data
+#'
+#' Wrapper around \code{get_forceframe_tests()} that also calls \code{get_profiles()}
+#' to ensure profile data is available before retrieving ForceFrame test data.
+#' Intended for use when you want to fetch Profiles information as well as ForceFrame tests from the API.
+#'
+#' @param start_date (Optional) A UTC ISO 8601 datetime string (e.g. "2025-06-25T00:00:00Z")
+#' used to filter results by modification time. Input as a string.
+#' @param profile_id (Optional) A specific profile ID to filter results for a single athlete. Input as a string.
+#'
+#' @return A data frame containing Profiles information and a data frame containing ForceFrame test data.
+#' @export
+#' @examples
+#' \dontrun{
+#' # Fetch all recent ForceFrame tests along with Profiles information
+#' tests <- get_forceframe_data()
+#' View(tests)
+#'
+#' # Fetch ForceFrame tests for a specific profile
+#' get_forceframe_data(profile_id = "abc123")
+#' }
+get_forceframe_data <- function(start_date = NULL, profile_id = NULL) {
+  profiles <- get_profiles()
+  tests <- get_forceframe_tests(start_date = start_date, profile_id = profile_id)
+
+  list(
+    profiles = profiles,
+    tests = tests
+  )
+}
+
+#' Get NordBord test data
+#'
+#' Wrapper around \code{get_nordbord_tests()} that also calls \code{get_profiles()}
+#' to ensure profile data is available before retrieving NordBord test data.
+#' Intended for use when you want to fetch Profiles information as well as NordBord tests from the API.
+#'
+#' @param start_date (Optional) A UTC ISO 8601 datetime string (e.g. "2025-06-25T00:00:00Z")
+#' used to filter results by modification time. Input as a string.
+#' @param profile_id (Optional) A specific profile ID to filter results for a single athlete. Input as a string.
+#'
+#' @return A data frame containing Profiles information and a data frame containing NordBord test data.
+#' @export
+#' @examples
+#' \dontrun{
+#' # Fetch all recent NordBord tests along with Profiles information
+#' tests <- get_nordbord_data()
+#' View(tests)
+#'
+#' # Fetch NordBord tests for a specific profile
+#' get_nordbord_data(profile_id = "abcd1234-ab12-cd34-ef56-abcdef123456")
+#' }
+get_nordbord_data <- function(start_date = NULL, profile_id = NULL) {
+  profiles <- get_profiles()
+  tests <- get_nordbord_tests(start_date = start_date, profile_id = profile_id)
+
+  list(
+    profiles = profiles,
+    tests = tests
+  )
+}
+
+#' Get only ForceFrame test data
+#'
+#' Wrapper around \code{get_forceframe_tests()} to retrieve ForceFrame test data.
+#' Intended for use when you want to fetch ForceFrame tests.
+#'
+#' @param start_date (Optional) A UTC ISO 8601 datetime string (e.g. "2025-06-25T00:00:00Z") used to filter results by modification time. Input as a string.
+#' @param profile_id (Optional) A specific profile ID to filter results for a single athlete. Input as a string.
+#'
+#' @return A data frame where each row corresponds to a ForceFrame test retrieved from the API. Returned invisibly.
+#' @export
+#' @examples
+#' \dontrun{
+#' # Fetch all recent ForceFrame tests
+#' tests <- get_forceframe_tests_only()
+#' View(tests)
+#'
+#' # Fetch ForceFrame tests for a specific profile
+#' get_forceframe_tests_only(profile_id = "abcd1234-ab12-cd34-ef56-abcdef123456")
+#' }
+get_forceframe_tests_only <- function(start_date = NULL, profile_id = NULL) {
+  get_forceframe_tests(start_date = start_date, profile_id = profile_id)
+}
+
+
+#' Get only NordBord test data
+#'
+#' Wrapper around \code{get_nordbord_tests()} to retrieve NordBord test data.
+#' Intended for use when you want to fetch NordBord tests.
+#'
+#' @param start_date (Optional) A UTC ISO 8601 datetime string (e.g. "2025-06-25T00:00:00Z") used to filter results by modification time. Input as a string.
+#' @param profile_id (Optional) A specific profile ID to filter results for a single athlete. Input as a string.
+#'
+#' @return A data frame where each row corresponds to a NordBord test retrieved from the API. Returned invisibly.
+#' @export
+#' @examples
+#' \dontrun{
+#' # Fetch all recent NordBord tests
+#' tests <- get_nordbord_tests_only()
+#' View(tests)
+#'
+#' # Fetch NordBord tests for a specific profile
+#' get_nordbord_tests_only(profile_id = "abcd1234-ab12-cd34-ef56-abcdef123456")
+#' }
+get_nordbord_tests_only <- function(start_date = NULL, profile_id = NULL) {
+  get_nordbord_tests(start_date = start_date, profile_id = profile_id)
+}
+
+#' Get a single ForceFrame test by ID
+#'
+#' Wrapper around \code{get_forceframe_tests_by_id()} to retrieve a specific ForceFrame test.
+#' Intended for use when you want to fetch a single ForceFrame test record.
+#'
+#' @param test_id (Required) The unique test ID for the ForceFrame test you want to retrieve.
+#'
+#' @return A data frame with one row corresponding to the requested ForceFrame test. Returned invisibly.
+#' @export
+#' @examples
+#' \dontrun{
+#' # Fetch a ForceFrame test by ID
+#' test <- get_forceframe_test_by_id("abcd1234-ab12-cd34-ef56-abcdef123456")
+#' View(test)
+#' }
+get_forceframe_test_by_id <- function(test_id) {
+  get_forceframe_tests_by_id(test_id)
+}
+
+#' Get a single NordBord test by ID
+#'
+#' Wrapper around \code{get_nordbord_tests_by_id()} to retrieve a specific NordBord test.
+#' Intended for use when you want to fetch a single NordBord test record.
+#'
+#' @param test_id (Required) The unique test ID for the NordBord test you want to retrieve.
+#'
+#' @return A data frame with one row corresponding to the requested NordBord test. Returned invisibly.
+#' @export
+#' @examples
+#' \dontrun{
+#' # Fetch a NordBord test by ID
+#' test <- get_nordbord_test_by_id("abcd1234-ab12-cd34-ef56-abcdef123456")
+#' View(test)
+#' }
+get_nordbord_test_by_id <- function(test_id) {
+  get_nordbord_tests_by_id(test_id)
+}

@@ -8,8 +8,10 @@ authenticate()
 }
 \value{
 A character vector of length 1 (a single string) representing a valid access token. Returned invisibly and used internally for authentication.
+Internal function (not designed to be used directly by end users)
 }
 \description{
 Ensures a valid access token is available based on stored credentials.
 Also validates required tenant ID and token presence for subsequent function calls.
 }
+\keyword{internal}

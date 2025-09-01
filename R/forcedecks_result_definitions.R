@@ -3,7 +3,8 @@
 #' Retrieves all available result definitions from the ForceDecks API.
 #'
 #' @return A data frame where each row corresponds to a ForceDecks result definition retrieved from the API. Returned invisibly.
-#' @export
+#' Internal function (not designed to be used directly by end users)
+#' @keywords internal
 get_forcedecks_result_definitions <- function() {
   config <- get_config(quiet = TRUE)
   access_token <- authenticate()
@@ -37,7 +38,22 @@ get_forcedecks_result_definitions <- function() {
     stop("No result definitions found in the API response.", call. = FALSE)
   }
 
-  # Build data.frame from results
-  df <- do.call(rbind, lapply(parsed$resultDefinitions, as.data.frame))
-  as.data.frame(df, stringsAsFactors = FALSE)
+  # Build data.frame using null-safe extraction
+  results_df <- data.frame(
+    resultId             = .safe_extract(parsed$resultDefinitions, "resultId"),
+    resultIdString       = .safe_extract(parsed$resultDefinitions, "resultIdString"),
+    resultName           = .safe_extract(parsed$resultDefinitions, "resultName"),
+    resultDescription    = .safe_extract(parsed$resultDefinitions, "resultDescription"),
+    resultGroup          = .safe_extract(parsed$resultDefinitions, "resultGroup"),
+    supportsAsymmetry    = .safe_extract(parsed$resultDefinitions, "supportsAsymmetry"),
+    isRepeatResult       = .safe_extract(parsed$resultDefinitions, "isRepeatResult"),
+    resultUnit           = .safe_extract(parsed$resultDefinitions, "resultUnit"),
+    resultUnitName       = .safe_extract(parsed$resultDefinitions, "resultUnitName"),
+    resultUnitScaleFactor= .safe_extract(parsed$resultDefinitions, "resultUnitScaleFactor"),
+    numberOfDecimalPlaces = .safe_extract(parsed$resultDefinitions, "numberOfDecimalPlaces"),
+    trendDirection       = .safe_extract(parsed$resultDefinitions, "trendDirection"),
+    stringsAsFactors     = FALSE
+  )
+
+  return(results_df)
 }

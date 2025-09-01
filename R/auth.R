@@ -5,7 +5,8 @@
 #' @param config Configuration object. If NULL, uses internal config set by \code{set_credentials()}.
 #' @param verbose Whether to print a message when refreshing the token.
 #' @return (Invisibly) a character vector of length 1 containing the bearer token used for authenticating API requests.
-#' @export
+#' Internal function (not designed to be used directly by end users)
+#' @keywords internal
 get_access_token <- function(config = NULL, verbose = TRUE) {
   if (is.null(config)) config <- get_config(quiet = TRUE)
 
@@ -74,7 +75,8 @@ get_access_token <- function(config = NULL, verbose = TRUE) {
 #' Also validates required tenant ID and token presence for subsequent function calls.
 #'
 #' @return A character vector of length 1 (a single string) representing a valid access token. Returned invisibly and used internally for authentication.
-#' @export
+#' Internal function (not designed to be used directly by end users)
+#' @keywords internal
 authenticate <- function() {
   config <- get_config(quiet = TRUE)
 
@@ -95,6 +97,7 @@ authenticate <- function() {
 #'
 #' @param token A JWT access token
 #' @return A logical scalar (TRUE or FALSE) indicating whether the provided JWT access token is still valid based on its expiry timestamp.
+#' Internal function (not designed to be used directly by end users)
 #' @keywords internal
 is_token_valid <- function(token) {
   if (is.null(token) || token == "") {

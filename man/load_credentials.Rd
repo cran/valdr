@@ -7,7 +7,8 @@
 load_credentials(verbose = TRUE)
 }
 \arguments{
-\item{verbose}{Logical; if TRUE, prints messages on load status (default FALSE).}
+\item{verbose}{Logical; if TRUE, prints messages on load status (default FALSE).
+Internal function (not designed to be used directly by end users)}
 }
 \value{
 Invisibly returns TRUE if credentials and configuration were loaded successfully, FALSE otherwise.
@@ -16,3 +17,4 @@ Invisibly returns TRUE if credentials and configuration were loaded successfully
 Loads the saved VALD API configuration from the user's config file
 and retrieves sensitive credentials securely from the system keyring.
 }
+\keyword{internal}

@@ -4,7 +4,8 @@
 #'
 #' @return A data frame containing VALD profiles information for the stored `tenant_id`.
 #' If no profiles are found, the function raises an error.
-#' @export
+#' Internal function (not designed to be used directly by end users)
+#' @keywords internal
 get_profiles <- function() {
   config <- get_config(quiet = TRUE)
   access_token <- authenticate()
@@ -42,14 +43,18 @@ get_profiles <- function() {
     profiles <- profiles_json$profiles
 
     profiles_df <- data.frame(
-      profileId = sapply(profiles, function(p) p$profileId),
-      syncId = sapply(profiles, function(p) if (is.null(p$syncId)) NA else p$syncId),
-      givenName = sapply(profiles, function(p) p$givenName),
-      familyName = sapply(profiles, function(p) p$familyName),
-      dateOfBirth = sapply(profiles, function(p) p$dateOfBirth),
-      externalId = sapply(profiles, function(p) if (is.null(p$externalId)) NA else p$externalId),
+      profileId = .safe_extract(profiles, "profileId"),
+      syncId = .safe_extract(profiles, "syncId"),
+      givenName = .safe_extract(profiles, "givenName"),
+      familyName = .safe_extract(profiles, "familyName"),
+      dateOfBirth = .safe_extract(profiles, "dateOfBirth"),
+      externalId = .safe_extract(profiles, "externalId"),
       stringsAsFactors = FALSE
     )
+
+    if (any(profiles_df$dateOfBirth == "")) {
+      warning("You have profiles in your organisation which have NULL date of birth values. This is no longer supported by VALD. Please ensure you populate these values for all profiles.")
+    }
 
     return(profiles_df)
   } else {

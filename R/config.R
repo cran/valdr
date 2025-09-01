@@ -77,8 +77,10 @@ set_credentials <- function(client_id, client_secret, tenant_id, region) {
 
   # Construct endpoint URLs based on region
   endpoints <- list(
-    profile    = paste0("https://prd-", region, "-api-externalprofile.valdperformance.com"),
-    forcedecks = paste0("https://prd-", region, "-api-extforcedecks.valdperformance.com")
+    profile = paste0("https://prd-", region, "-api-externalprofile.valdperformance.com"),
+    forcedecks = paste0("https://prd-", region, "-api-extforcedecks.valdperformance.com"),
+    nordbord = paste0("https://prd-", region, "-api-externalnordbord.valdperformance.com"),
+    forceframe = paste0("https://prd-", region, "-api-externalforceframe.valdperformance.com")
   )
 
   # Create config list excluding sensitive info
@@ -106,7 +108,8 @@ set_credentials <- function(client_id, client_secret, tenant_id, region) {
 #'
 #' @return Invisibly returns TRUE if credentials and configuration were loaded successfully, FALSE otherwise.
 #' @param verbose Logical; if TRUE, prints messages on load status (default FALSE).
-#' @export
+#' Internal function (not designed to be used directly by end users)
+#' @keywords internal
 load_credentials <- function(verbose = TRUE) {
   service_name <- "valdr_credentials"
   path <- .vald_config_path()
@@ -291,7 +294,7 @@ get_start_date <- function() {
 
   # Friendly messages
   msg <- switch(as.character(status),
-    "400" = "Bad Request (400): The request was invalid. Please check your start_date value and API credentials using get_config().",
+    "400" = "Bad Request (400): The request was invalid. Please verify your arguments, query parameters, and API credentials using get_config(), and compare against the function documentation.",
     "401" = "Unauthorized (401): Authentication failed. Please check your API credentials using get_config() and then set_credentials().",
     "403" = "Forbidden (403): You do not have permission to access this resource. Please check your API credentials using get_config().",
     "404" = "Not Found (404): The requested resource was not found. Please check your start_date value and API credentials using get_config().",

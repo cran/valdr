@@ -11,6 +11,7 @@ is_token_valid(token)
 }
 \value{
 A logical scalar (TRUE or FALSE) indicating whether the provided JWT access token is still valid based on its expiry timestamp.
+Internal function (not designed to be used directly by end users)
 }
 \description{
 Check if JWT access token is expired

@@ -13,7 +13,9 @@ get_forcedecks_tests(start_date = NULL, profile_id = NULL)
 }
 \value{
 A data frame containing ForceDecks test results matching the optional filters. If no tests are found, returns an empty data frame. Returned invisibly.
+Internal function (not designed to be used directly by end users)
 }
 \description{
 Retrieves ForceDecks test data with optional filtering by start date and profile ID.
 }
+\keyword{internal}

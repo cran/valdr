@@ -13,7 +13,9 @@ get_access_token(config = NULL, verbose = TRUE)
 }
 \value{
 (Invisibly) a character vector of length 1 containing the bearer token used for authenticating API requests.
+Internal function (not designed to be used directly by end users)
 }
 \description{
 Retrieves a cached access token from disk if valid, otherwise fetches a new one.
 }
+\keyword{internal}

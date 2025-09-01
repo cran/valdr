@@ -9,7 +9,9 @@ get_profiles()
 \value{
 A data frame containing VALD profiles information for the stored \code{tenant_id}.
 If no profiles are found, the function raises an error.
+Internal function (not designed to be used directly by end users)
 }
 \description{
 Queries the External Profiles API and returns a data frame of VALD profiles.
 }
+\keyword{internal}
