@@ -4,10 +4,21 @@
 #'
 #' @param start_date Optional ISO 8601 UTC date string (e.g., "2025-06-25T00:00:00Z").
 #' @param profile_id Optional Profile ID to filter results.
-#' @return A data frame containing ForceDecks test results matching the optional filters. If no tests are found, returns an empty data frame. Returned invisibly.
+#' @param include_attributes Logical; if FALSE (default), returns only the tests
+#'   data frame. If TRUE, returns a named list with components \code{tests}
+#'   (the tests data frame) and \code{attributes} (a long-format attributes
+#'   mapping table).
+#'
+#' @return If \code{include_attributes = FALSE}, a data frame containing
+#'   ForceDecks test results matching the optional filters. If no tests are
+#'   found, returns an empty data frame.
+#'   If \code{include_attributes = TRUE}, a list with elements \code{tests}
+#'   and \code{attributes}. Returned invisibly.
 #' Internal function (not designed to be used directly by end users)
 #' @keywords internal
-get_forcedecks_tests <- function(start_date = NULL, profile_id = NULL) {
+get_forcedecks_tests <- function(start_date = NULL,
+                                 profile_id = NULL,
+                                 include_attributes = FALSE) {
     config <- get_config(quiet = TRUE)
     access_token <- authenticate()
 
@@ -42,7 +53,7 @@ get_forcedecks_tests <- function(start_date = NULL, profile_id = NULL) {
         # Perform GET request with httr
         response <- tryCatch(
             httr::GET(
-                url = url,
+                url   = url,
                 query = query_params,
                 .add_vald_headers(access_token)
             ),
@@ -66,7 +77,7 @@ get_forcedecks_tests <- function(start_date = NULL, profile_id = NULL) {
             }
         )
 
-        if (!is.null(test_data$tests) && length(test_data$tests) > 0) {
+        if (!is.null(test_data$tests) && length(test_data$tests) > 0L) {
             all_tests <- append(all_tests, test_data$tests)
             modified_from_utc <- test_data$tests[[length(test_data$tests)]]$modifiedDateUtc
             message("Continuing pagination from ", modified_from_utc)
@@ -78,8 +89,8 @@ get_forcedecks_tests <- function(start_date = NULL, profile_id = NULL) {
         Sys.sleep(0.2) # Pause to respect rate limits
     }
 
-    if (length(all_tests) == 0) {
-        return(data.frame())
+    if (length(all_tests) == 0L) {
+        return(invisible(data.frame()))
     }
 
     tests_df <- data.frame(
@@ -99,10 +110,18 @@ get_forcedecks_tests <- function(start_date = NULL, profile_id = NULL) {
         stringsAsFactors     = FALSE
     )
 
-
     # Save new start_date to config based on last modified
     latest_mod_time <- max(tests_df$modifiedDateUtc, na.rm = TRUE)
     set_start_date(latest_mod_time)
 
-    return(tests_df)
+    if (isTRUE(include_attributes)) {
+        attributes_df <- .build_test_attributes_long(all_tests)
+        result <- list(
+            tests      = tests_df,
+            attributes = attributes_df
+        )
+        return(invisible(result))
+    }
+
+    invisible(tests_df)
 }

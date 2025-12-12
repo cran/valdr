@@ -4,21 +4,34 @@
 \alias{get_forcedecks_tests_only}
 \title{Get only ForceDecks test data}
 \usage{
-get_forcedecks_tests_only(start_date = NULL)
+get_forcedecks_tests_only(start_date = NULL, include_attributes = FALSE)
 }
 \arguments{
-\item{start_date}{In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z") indicating the start of the test retrieval window.}
+\item{start_date}{In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z")
+indicating the start of the test retrieval window.}
+
+\item{include_attributes}{Logical; if TRUE, returns a named list with
+\code{tests} (the test data frame) and \code{attributes} (the long-format
+attributes mapping table). If FALSE (default), returns only the tests
+data frame.}
 }
 \value{
-A data frame containing ForceDecks test-level data.
+Either a data frame containing ForceDecks test-level data, or a list
+with components \code{tests} and \code{attributes} if
+\code{include_attributes = TRUE}.
 }
 \description{
-Wrapper around \code{get_forcedecks_tests()} if the user only wants test-level data without trials.
+Wrapper around \code{get_forcedecks_tests()} if the user only wants
+test-level data without trials.
 }
 \examples{
 \dontrun{
 # Fetch only tests
 tests <- get_forcedecks_tests_only()
-View(tests)
+
+# Fetch tests plus attributes mapping
+res <- get_forcedecks_tests_only(include_attributes = TRUE)
+tests <- res$tests
+attrs <- res$attributes
 }
 }

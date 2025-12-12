@@ -4,14 +4,20 @@
 \alias{get_forcedecks_data}
 \title{Run full initial data fetch from the VALD ForceDecks API and External Profiles API}
 \usage{
-get_forcedecks_data(start_date = NULL)
+get_forcedecks_data(start_date = NULL, include_attributes = FALSE)
 }
 \arguments{
-\item{start_date}{In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z") indicating the start of the test retrieval window.}
+\item{start_date}{In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z") indicating
+the start of the test retrieval window.}
+
+\item{include_attributes}{Logical; if TRUE, the returned list will include an
+additional data frame \code{test_attributes} containing a long-format mapping of
+test attributes. Defaults to FALSE.}
 }
 \value{
-A named list with data frames: \code{profiles}, \code{result_definitions}, \code{tests}, and \code{trials}.
-Each element contains the respective dataset fetched from the ForceDecks API.
+A named list with data frames: \code{profiles}, \code{result_definitions},
+\code{tests}, and \code{trials}. If \code{include_attributes = TRUE}, the list also
+contains \code{test_attributes}.
 }
 \description{
 This function is intended for first-time use or a full refresh of all datasets.
@@ -22,5 +28,9 @@ It retrieves profiles, result definitions, tests (from a specified start date), 
 # Fetch all data (profiles, results, tests, trials)
 data <- get_forcedecks_data()
 View(data$profiles)
+
+# Fetch all data including test attributes mapping
+data_with_attrs <- get_forcedecks_data(include_attributes = TRUE)
+View(data_with_attrs$test_attributes)
 }
 }

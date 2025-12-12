@@ -4,15 +4,28 @@
 \alias{get_forcedecks_tests}
 \title{Get ForceDecks tests}
 \usage{
-get_forcedecks_tests(start_date = NULL, profile_id = NULL)
+get_forcedecks_tests(
+  start_date = NULL,
+  profile_id = NULL,
+  include_attributes = FALSE
+)
 }
 \arguments{
 \item{start_date}{Optional ISO 8601 UTC date string (e.g., "2025-06-25T00:00:00Z").}
 
 \item{profile_id}{Optional Profile ID to filter results.}
+
+\item{include_attributes}{Logical; if FALSE (default), returns only the tests
+data frame. If TRUE, returns a named list with components \code{tests}
+(the tests data frame) and \code{attributes} (a long-format attributes
+mapping table).}
 }
 \value{
-A data frame containing ForceDecks test results matching the optional filters. If no tests are found, returns an empty data frame. Returned invisibly.
+If \code{include_attributes = FALSE}, a data frame containing
+ForceDecks test results matching the optional filters. If no tests are
+found, returns an empty data frame.
+If \code{include_attributes = TRUE}, a list with elements \code{tests}
+and \code{attributes}. Returned invisibly.
 Internal function (not designed to be used directly by end users)
 }
 \description{

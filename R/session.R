@@ -3,37 +3,74 @@
 #' This function is intended for first-time use or a full refresh of all datasets.
 #' It retrieves profiles, result definitions, tests (from a specified start date), and trials.
 #'
-#' @param start_date In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z") indicating the start of the test retrieval window.
-#' @return A named list with data frames: `profiles`, `result_definitions`, `tests`, and `trials`.
-#' Each element contains the respective dataset fetched from the ForceDecks API.
+#' @param start_date In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z") indicating
+#'   the start of the test retrieval window.
+#' @param include_attributes Logical; if TRUE, the returned list will include an
+#'   additional data frame `test_attributes` containing a long-format mapping of
+#'   test attributes. Defaults to FALSE.
+#'
+#' @return A named list with data frames: `profiles`, `result_definitions`,
+#'   `tests`, and `trials`. If `include_attributes = TRUE`, the list also
+#'   contains `test_attributes`.
 #' @export
 #' @examples
 #' \dontrun{
 #' # Fetch all data (profiles, results, tests, trials)
 #' data <- get_forcedecks_data()
 #' View(data$profiles)
+#'
+#' # Fetch all data including test attributes mapping
+#' data_with_attrs <- get_forcedecks_data(include_attributes = TRUE)
+#' View(data_with_attrs$test_attributes)
 #' }
-get_forcedecks_data <- function(start_date = NULL) {
+get_forcedecks_data <- function(start_date = NULL,
+                                include_attributes = FALSE) {
   profiles <- get_profiles()
   results <- get_forcedecks_result_definitions()
-  tests <- get_forcedecks_tests(start_date)
+
+  if (isTRUE(include_attributes)) {
+    tests_res <- get_forcedecks_tests(
+      start_date = start_date,
+      include_attributes = TRUE
+    )
+    tests <- tests_res$tests
+    test_attributes <- tests_res$attributes
+  } else {
+    tests <- get_forcedecks_tests(
+      start_date = start_date,
+      include_attributes = FALSE
+    )
+    test_attributes <- NULL
+  }
+
   trials <- get_forcedecks_trials(tests)
 
-  list(
+  out <- list(
     profiles           = profiles,
     result_definitions = results,
     tests              = tests,
     trials             = trials
   )
+
+  if (isTRUE(include_attributes)) {
+    out$test_attributes <- test_attributes
+  }
+
+  out
 }
 
 #' Run a standard session to get new ForceDecks tests and trials only
 #'
 #' Use this when profiles and result definitions have already been downloaded previously.
 #'
-#' @param start_date In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z") indicating the start of the test retrieval window.
-#' @return A named list with two data frames: `tests` and `trials`.
-#' These contain newly retrieved ForceDecks tests and their associated trial results.
+#' @param start_date In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z") indicating
+#'   the start of the test retrieval window.
+#' @param include_attributes Logical; if TRUE, the returned list will include an
+#'   additional data frame `test_attributes` containing a long-format mapping of
+#'   test attributes. Defaults to FALSE.
+#'
+#' @return A named list with data frames: `tests` and `trials`. If
+#'   `include_attributes = TRUE`, the list also contains `test_attributes`.
 #' @export
 #' @examples
 #' \dontrun{
@@ -41,32 +78,75 @@ get_forcedecks_data <- function(start_date = NULL) {
 #' session <- get_forcedecks_tests_trials()
 #' View(session$tests)
 #' View(session$trials)
+#'
+#' # Fetch tests, trials, and test attributes mapping
+#' session2 <- get_forcedecks_tests_trials(include_attributes = TRUE)
+#' View(session2$test_attributes)
 #' }
-get_forcedecks_tests_trials <- function(start_date = NULL) {
-  tests <- get_forcedecks_tests(start_date)
+get_forcedecks_tests_trials <- function(start_date = NULL,
+                                        include_attributes = FALSE) {
+  if (isTRUE(include_attributes)) {
+    tests_res <- get_forcedecks_tests(
+      start_date = start_date,
+      include_attributes = TRUE
+    )
+    tests <- tests_res$tests
+    test_attributes <- tests_res$attributes
+  } else {
+    tests <- get_forcedecks_tests(
+      start_date = start_date,
+      include_attributes = FALSE
+    )
+    test_attributes <- NULL
+  }
+
   trials <- get_forcedecks_trials(tests)
 
-  list(
+  out <- list(
     tests  = tests,
     trials = trials
   )
+
+  if (isTRUE(include_attributes)) {
+    out$test_attributes <- test_attributes
+  }
+
+  out
 }
 
 #' Get only ForceDecks test data
 #'
-#' Wrapper around \code{get_forcedecks_tests()} if the user only wants test-level data without trials.
+#' Wrapper around \code{get_forcedecks_tests()} if the user only wants
+#' test-level data without trials.
 #'
-#' @param start_date In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z") indicating the start of the test retrieval window.
-#' @return A data frame containing ForceDecks test-level data.
+#' @param start_date In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z")
+#'   indicating the start of the test retrieval window.
+#' @param include_attributes Logical; if TRUE, returns a named list with
+#'   \code{tests} (the test data frame) and \code{attributes} (the long-format
+#'   attributes mapping table). If FALSE (default), returns only the tests
+#'   data frame.
+#'
+#' @return Either a data frame containing ForceDecks test-level data, or a list
+#'   with components \code{tests} and \code{attributes} if
+#'   \code{include_attributes = TRUE}.
 #' @export
 #' @examples
 #' \dontrun{
 #' # Fetch only tests
 #' tests <- get_forcedecks_tests_only()
-#' View(tests)
+#'
+#' # Fetch tests plus attributes mapping
+#' res <- get_forcedecks_tests_only(include_attributes = TRUE)
+#' tests <- res$tests
+#' attrs <- res$attributes
 #' }
-get_forcedecks_tests_only <- function(start_date = NULL) {
-  get_forcedecks_tests(start_date)
+get_forcedecks_tests_only <- function(start_date = NULL,
+                                      include_attributes = FALSE) {
+  get_forcedecks_tests(
+    start_date = start_date,
+    profile_id = NULL,
+    include_attributes = include_attributes
+  )
 }
 
 #' Get trials for an existing test data frame
@@ -266,4 +346,103 @@ get_forceframe_test_by_id <- function(test_id) {
 #' }
 get_nordbord_test_by_id <- function(test_id) {
   get_nordbord_tests_by_id(test_id)
+}
+
+#' Export ForceDecks data for dashboards
+#'
+#' Queries the ForceDecks API, joins trials/tests/profiles/result definitions,
+#' and writes a CSV file to the user's Downloads/VALD_Exports folder (by default).
+#'
+#' This export is ForceDecks-specific and uses the stored start date from
+#' \code{get_start_date()}, which is automatically updated by the ForceDecks
+#' data retrieval functions.
+#'
+#' @param export_dir Optional directory to write the CSV to. If \code{NULL},
+#'   uses \code{~/Downloads/VALD_Exports}.
+#'
+#' @return Invisibly, the full path to the created CSV file.
+#' @export
+export_forcedecks_csv <- function(export_dir = NULL) {
+  message("Executing dataset export process...")
+
+  # Resolve start_date from stored config
+  start_date <- get_start_date()
+
+  if (is.null(export_dir)) {
+    export_dir <- .vald_default_export_dir()
+  }
+
+  # Ensure export directory exists
+  if (!dir.exists(export_dir)) {
+    dir.create(export_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  # 1 - Pull ForceDecks data (trials, tests, profiles, result definitions)
+  fd <- get_forcedecks_data(
+    start_date = start_date
+  )
+
+  # 2 - Join trials, tests, profiles, result_definitions using dplyr
+  merged <- fd$trials %>%
+    dplyr::left_join(fd$tests, by = "testId") %>%
+    dplyr::left_join(fd$profiles, by = c("athleteId" = "profileId")) %>%
+    dplyr::left_join(fd$result_definitions, by = "resultId") %>%
+    dplyr::select(
+      dplyr::all_of(c(
+        "athleteId",
+        "givenName",
+        "familyName",
+        "recordedUTC",
+        "testType",
+        "trialId",
+        "weight",
+        "resultName",
+        "value",
+        "resultUnitName"
+      ))
+    )
+
+  # 3 - Build file name + write CSV
+  fname <- paste0(
+    "forceDecks_",
+    format(Sys.time(), "%Y-%m-%d_%H%M%S"),
+    ".csv"
+  )
+
+  full_path <- file.path(export_dir, fname)
+
+  readr::write_csv(merged, full_path, na = "")
+
+  message("ForceDecks export written to: ", full_path)
+
+  invisible(full_path)
+}
+
+#' Get profile–group–category mappings
+#'
+#' Wrapper around \code{get_profiles_groups_categories()} to retrieve
+#' the long-format mapping of profiles to their groups and categories.
+#'
+#' Intended for use when you want a relational view of profile metadata
+#' rather than the one-row-per-profile structure returned by \code{get_profiles()}.
+#'
+#' @return A data frame with one row per profile–group–category combination,
+#'   containing the columns:
+#'   \itemize{
+#'     \item \code{profileId}
+#'     \item \code{categoryId}
+#'     \item \code{categoryName}
+#'     \item \code{groupId}
+#'     \item \code{groupName}
+#'   }
+#'   Returned invisibly.
+#' @export
+#' @examples
+#' \dontrun{
+#' # Fetch profile–group–category mappings for the current tenant
+#' mappings <- get_profiles_groups_categories_mapping()
+#' head(mappings)
+#' }
+get_profiles_groups_categories_mapping <- function() {
+  get_profiles_groups_categories()
 }

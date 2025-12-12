@@ -17,4 +17,10 @@ Invisibly returns TRUE if credentials and configuration were loaded successfully
 Loads the saved VALD API configuration from the user's config file
 and retrieves sensitive credentials securely from the system keyring.
 }
+\details{
+Also ensures that API endpoints are kept up to date for the current
+package version (e.g. when new endpoints are added),
+and persists any repaired endpoint configuration back to disk
+(non-sensitive fields only).
+}
 \keyword{internal}

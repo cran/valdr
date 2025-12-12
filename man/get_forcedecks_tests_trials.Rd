@@ -4,14 +4,19 @@
 \alias{get_forcedecks_tests_trials}
 \title{Run a standard session to get new ForceDecks tests and trials only}
 \usage{
-get_forcedecks_tests_trials(start_date = NULL)
+get_forcedecks_tests_trials(start_date = NULL, include_attributes = FALSE)
 }
 \arguments{
-\item{start_date}{In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z") indicating the start of the test retrieval window.}
+\item{start_date}{In ISO 8601 UTC format (e.g., "2025-06-25T00:00:00Z") indicating
+the start of the test retrieval window.}
+
+\item{include_attributes}{Logical; if TRUE, the returned list will include an
+additional data frame \code{test_attributes} containing a long-format mapping of
+test attributes. Defaults to FALSE.}
 }
 \value{
-A named list with two data frames: \code{tests} and \code{trials}.
-These contain newly retrieved ForceDecks tests and their associated trial results.
+A named list with data frames: \code{tests} and \code{trials}. If
+\code{include_attributes = TRUE}, the list also contains \code{test_attributes}.
 }
 \description{
 Use this when profiles and result definitions have already been downloaded previously.
@@ -22,5 +27,9 @@ Use this when profiles and result definitions have already been downloaded previ
 session <- get_forcedecks_tests_trials()
 View(session$tests)
 View(session$trials)
+
+# Fetch tests, trials, and test attributes mapping
+session2 <- get_forcedecks_tests_trials(include_attributes = TRUE)
+View(session2$test_attributes)
 }
 }

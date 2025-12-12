@@ -107,6 +107,99 @@
     test_id
 }
 
+#' Build long-format mapping of ForceDecks test attributes
+#'
+#' Given a list of test records (from parsed JSON), this returns one row per
+#' test-attribute combination, with a stable set of columns.
+#'
+#' Only attributes with at least one non-blank field are included. Tests with
+#' no attributes (or only blank attributes) do not appear in the result.
+#'
+#' @param records list of test records (each may contain $attributes)
+#' @return data.frame with columns:
+#'   - testId
+#'   - attributeTypeId
+#'   - attributeTypeName
+#'   - attributeValueId
+#'   - attributeValueName
+#' @keywords internal
+.build_test_attributes_long <- function(records) {
+    # Empty input = empty but correctly typed data frame
+    if (length(records) == 0L) {
+        return(data.frame(
+            testId             = character(0),
+            attributeTypeId    = character(0),
+            attributeTypeName  = character(0),
+            attributeValueId   = character(0),
+            attributeValueName = character(0),
+            stringsAsFactors   = FALSE
+        ))
+    }
+
+    rows <- list()
+
+    for (rec in records) {
+        test_id <- rec$testId
+        if (is.null(test_id)) test_id <- ""
+
+        attrs <- rec$attributes
+
+        # No attributes = nothing to add for this test
+        if (is.null(attrs) || length(attrs) == 0L) {
+            next
+        }
+
+        for (a in attrs) {
+            if (is.null(a)) next
+
+            type_id <- if (is.null(a$attributeTypeId)) "" else as.character(a$attributeTypeId)
+            type_name <- if (is.null(a$attributeTypeName)) "" else as.character(a$attributeTypeName)
+            val_id <- if (is.null(a$attributeValueId)) "" else as.character(a$attributeValueId)
+            val_name <- if (is.null(a$attributeValueName)) "" else as.character(a$attributeValueName)
+
+            # Skip rows where all attribute fields are blank
+            all_blank <- (
+                (type_id == "" || is.na(type_id)) &&
+                    (type_name == "" || is.na(type_name)) &&
+                    (val_id == "" || is.na(val_id)) &&
+                    (val_name == "" || is.na(val_name))
+            )
+            if (all_blank) {
+                next
+            }
+
+            rows[[length(rows) + 1L]] <- list(
+                testId             = test_id,
+                attributeTypeId    = type_id,
+                attributeTypeName  = type_name,
+                attributeValueId   = val_id,
+                attributeValueName = val_name
+            )
+        }
+    }
+
+    if (length(rows) == 0L) {
+        return(data.frame(
+            testId             = character(0),
+            attributeTypeId    = character(0),
+            attributeTypeName  = character(0),
+            attributeValueId   = character(0),
+            attributeValueName = character(0),
+            stringsAsFactors   = FALSE
+        ))
+    }
+
+    # Use .safe_extract for consistency
+    data.frame(
+        testId             = .safe_extract(rows, "testId"),
+        attributeTypeId    = .safe_extract(rows, "attributeTypeId"),
+        attributeTypeName  = .safe_extract(rows, "attributeTypeName"),
+        attributeValueId   = .safe_extract(rows, "attributeValueId"),
+        attributeValueName = .safe_extract(rows, "attributeValueName"),
+        stringsAsFactors   = FALSE
+    )
+}
+
 #' Build a ForceFrame test data frame
 #'
 #' Internal helper to convert a list of ForceFrame test records into a tidy \code{data.frame}.
@@ -203,4 +296,94 @@
         rightRepetitions = .safe_extract(records, "rightRepetitions"),
         stringsAsFactors = FALSE
     )
+}
+
+#' Default export directory (Downloads/VALD_Exports)
+#'
+#' Internal helper to resolve the user's Downloads folder in a cross-platform
+#' friendly way, and append a VALD_Exports subfolder. Falls back to a temp
+#' directory if needed, with informative messages.
+#'
+#' @keywords internal
+.vald_default_export_dir <- function() {
+    # Try to resolve home directory
+    home <- Sys.getenv("USERPROFILE", unset = NA)
+    if (is.na(home) || !nzchar(home)) {
+        home <- Sys.getenv("HOME", unset = NA)
+    }
+
+    if (is.na(home) || !nzchar(home)) {
+        message(
+            "Could not determine a home directory from USERPROFILE/HOME. ",
+            "Falling back to a temporary directory for exports."
+        )
+        base_dir <- tempdir()
+    } else {
+        downloads <- file.path(home, "Downloads")
+
+        if (!dir.exists(downloads)) {
+            message(
+                "'Downloads' folder not found at: ", downloads, ". ",
+                "Falling back to a temporary directory for exports."
+            )
+            base_dir <- tempdir()
+        } else {
+            base_dir <- downloads
+        }
+    }
+
+    export_dir <- file.path(base_dir, "VALD_Exports")
+
+    # Ensure the export directory exists (or can be created)
+    if (!dir.exists(export_dir)) {
+        ok <- tryCatch(
+            dir.create(export_dir, recursive = TRUE),
+            warning = function(w) {
+                message(
+                    "Warning while creating export directory at: ", export_dir,
+                    " - ", conditionMessage(w)
+                )
+                FALSE
+            },
+            error = function(e) {
+                message(
+                    "Error while creating export directory at: ", export_dir,
+                    " - ", conditionMessage(e)
+                )
+                FALSE
+            }
+        )
+
+        if (!ok) {
+            # Last-resort fallback: tempdir()/VALD_Exports
+            fallback_base <- tempdir()
+            fallback_dir <- file.path(fallback_base, "VALD_Exports")
+
+            message(
+                "Falling back to temporary export directory at: ",
+                fallback_dir
+            )
+
+            if (!dir.exists(fallback_dir)) {
+                ok_fb <- tryCatch(
+                    dir.create(fallback_dir, recursive = TRUE),
+                    error = function(e) {
+                        stop(
+                            "Failed to create fallback export directory at: ",
+                            fallback_dir, " - ", conditionMessage(e),
+                            ". If this error persists, please specify your desired ",
+                            "export folder path explicitly via the folder/path argument ",
+                            "in the export function you are calling. This error messages are ",
+                            "only coming from a function used to determine a default location when none is provided.",
+                            call. = FALSE
+                        )
+                    }
+                )
+            }
+
+            export_dir <- fallback_dir
+        }
+    }
+
+    export_dir
 }

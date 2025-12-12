@@ -43,9 +43,27 @@
   }
 
   stop(sprintf(
-    "Unable to retrieve a valid (non-blank) '%s' from keyring after %d attempts. Please call load_credentials() manually.",
+    "Unable to retrieve a valid (non-blank) '%s' from keyring after %d attempts. Please call `valdr:::load_credentials()` manually.",
     username, retries
   ), call. = FALSE)
+}
+
+#' Build default VALD API endpoints for a region
+#'
+#' Internal helper used to derive endpoint URLs from a region code.
+#' @keywords internal
+.vald_default_endpoints <- function(region) {
+  if (is.null(region) || !nzchar(region)) {
+    stop("Region is missing; cannot construct default endpoints.", call. = FALSE)
+  }
+
+  list(
+    profile    = paste0("https://prd-", region, "-api-externalprofile.valdperformance.com"),
+    forcedecks = paste0("https://prd-", region, "-api-extforcedecks.valdperformance.com"),
+    nordbord   = paste0("https://prd-", region, "-api-externalnordbord.valdperformance.com"),
+    forceframe = paste0("https://prd-", region, "-api-externalforceframe.valdperformance.com"),
+    tenant     = paste0("https://prd-", region, "-api-externaltenants.valdperformance.com")
+  )
 }
 
 #' Set and Save VALD API Credentials
@@ -75,13 +93,8 @@ set_credentials <- function(client_id, client_secret, tenant_id, region) {
   .retry_key_get(service_name, "client_id", retries = 5, delay = 0.5)
   .retry_key_get(service_name, "client_secret", retries = 5, delay = 0.5)
 
-  # Construct endpoint URLs based on region
-  endpoints <- list(
-    profile = paste0("https://prd-", region, "-api-externalprofile.valdperformance.com"),
-    forcedecks = paste0("https://prd-", region, "-api-extforcedecks.valdperformance.com"),
-    nordbord = paste0("https://prd-", region, "-api-externalnordbord.valdperformance.com"),
-    forceframe = paste0("https://prd-", region, "-api-externalforceframe.valdperformance.com")
-  )
+  # Construct endpoint URLs based on region (single source of truth)
+  endpoints <- .vald_default_endpoints(region)
 
   # Create config list excluding sensitive info
   config <- list(
@@ -106,6 +119,11 @@ set_credentials <- function(client_id, client_secret, tenant_id, region) {
 #' Loads the saved VALD API configuration from the user's config file
 #' and retrieves sensitive credentials securely from the system keyring.
 #'
+#' Also ensures that API endpoints are kept up to date for the current
+#' package version (e.g. when new endpoints are added),
+#' and persists any repaired endpoint configuration back to disk
+#' (non-sensitive fields only).
+#'
 #' @return Invisibly returns TRUE if credentials and configuration were loaded successfully, FALSE otherwise.
 #' @param verbose Logical; if TRUE, prints messages on load status (default FALSE).
 #' Internal function (not designed to be used directly by end users)
@@ -115,7 +133,7 @@ load_credentials <- function(verbose = TRUE) {
   path <- .vald_config_path()
 
   if (!file.exists(path)) {
-    if (verbose) message("VALD config file not found. Please run set_credentials().")
+    if (verbose) message("VALD config file not found. Please run `set_credentials()`.")
     return(FALSE)
   }
 
@@ -130,17 +148,36 @@ load_credentials <- function(verbose = TRUE) {
     return(FALSE)
   }
 
+  # Backwards compatibility for endpoint updates
+  # Build defaults from region, then overlay any stored endpoints
+  defaults <- .vald_default_endpoints(config$region)
+
+  if (is.null(config$endpoints)) {
+    config$endpoints <- list()
+  }
+
+  config$endpoints <- utils::modifyList(defaults, config$endpoints)
+
+  # Persist the repaired, non-sensitive config back to disk so future sessions
+  safe_config <- config
+  safe_config$client_id <- NULL
+  safe_config$client_secret <- NULL
+
+  # In case older versions somehow wrote sensitive fields, make sure they're removed
+  jsonlite::write_json(safe_config, path, auto_unbox = TRUE)
+
+  # Retrieve sensitive credentials securely from keyring with retry and error handling
   config$client_id <- tryCatch(
     .retry_key_get(service_name, "client_id"),
     error = function(e) {
-      if (verbose) message("Unable to retrieve client_id from keyring. Run set_credentials() again.")
+      if (verbose) message("Unable to retrieve client_id from keyring. Run `set_credentials()` again.")
       return(NULL)
     }
   )
   config$client_secret <- tryCatch(
     .retry_key_get(service_name, "client_secret"),
     error = function(e) {
-      if (verbose) message("Unable to retrieve client_secret from keyring. Run set_credentials() again.")
+      if (verbose) message("Unable to retrieve client_secret from keyring. Run `set_credentials()` again.")
       return(NULL)
     }
   )
@@ -167,7 +204,16 @@ load_credentials <- function(verbose = TRUE) {
 #' @export
 get_config <- function(safe = TRUE, quiet = FALSE) {
   if (is.null(.vald_api_env$config)) {
-    stop("VALD API credentials not set. Run `set_credentials()` or `load_credentials()` first.")
+    
+    # Try to lazy load credentials if not already loaded in this session
+    load_ok <- load_credentials(verbose = !quiet)
+    if (!isTRUE(load_ok) || is.null(.vald_api_env$config)) {
+      stop(
+        "VALD API credentials not set or could not be loaded. ",
+        "Please run `set_credentials()` first.",
+        call. = FALSE
+      )
+    }
   }
 
   config <- .vald_api_env$config
@@ -176,13 +222,13 @@ get_config <- function(safe = TRUE, quiet = FALSE) {
   config$client_id <- tryCatch(
     .retry_key_get("valdr_credentials", "client_id"),
     error = function(e) {
-      stop("Unable to retrieve client_id from keyring: ", e$message)
+      stop("Unable to retrieve client_id from keyring: ", e$message, call. = FALSE)
     }
   )
   config$client_secret <- tryCatch(
     .retry_key_get("valdr_credentials", "client_secret"),
     error = function(e) {
-      stop("Unable to retrieve client_secret from keyring: ", e$message)
+      stop("Unable to retrieve client_secret from keyring: ", e$message, call. = FALSE)
     }
   )
 
@@ -294,10 +340,10 @@ get_start_date <- function() {
 
   # Friendly messages
   msg <- switch(as.character(status),
-    "400" = "Bad Request (400): The request was invalid. Please verify your arguments, query parameters, and API credentials using get_config(), and compare against the function documentation.",
-    "401" = "Unauthorized (401): Authentication failed. Please check your API credentials using get_config() and then set_credentials().",
-    "403" = "Forbidden (403): You do not have permission to access this resource. Please check your API credentials using get_config().",
-    "404" = "Not Found (404): The requested resource was not found. Please check your start_date value and API credentials using get_config().",
+    "400" = "Bad Request (400): The request was invalid. Please verify your arguments, query parameters, and API credentials using `get_config()`, and compare against the function documentation.",
+    "401" = "Unauthorized (401): Authentication failed. Please check your API credentials using `get_config()` and then `set_credentials()`.",
+    "403" = "Forbidden (403): You do not have permission to access this resource. Please check your API credentials using `get_config()`.",
+    "404" = "Not Found (404): The requested resource was not found. Please check your start_date value and API credentials using `get_config()`.",
     "429" = "Too Many Requests (429): Rate limit exceeded. Please try again later.",
     NULL
   )

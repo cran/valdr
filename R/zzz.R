@@ -1,3 +1,6 @@
+#' @importFrom dplyr %>%
+NULL
+
 #' Package load hook for VALD API credentials
 #'
 #' `.onLoad()` initialises the internal package environment and attempts to load
